@@ -1,0 +1,9 @@
+[submodule "app-backend-TCC"]
+	path = app-backend-TCC
+	url = https://github.com/NevaxN/app-backend-TCC.git
+[submodule "app-frontend-TCC"]
+	path = app-frontend-TCC
+	url = https://github.com/MaryBra/app-frontend-TCC.git
+[submodule "keyword-extractor-TCC"]
+	path = keyword-extractor-TCC
+	url = https://github.com/policene/keyword-extractor-tcc.git

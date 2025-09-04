@@ -1,0 +1,91 @@
+# /tcc-orchestrator/docker-compose.yml
+version: '3.8'
+
+services:
+  # 1. Banco de Dados PostgreSQL
+  postgres:
+    image: postgres:16
+    container_name: tcc-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: tccdb
+    ports:
+      - "5432:5432" # Mapeia a porta para acesso local, se necessário
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d tccdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Backend (API Java)
+  backend:
+    build:
+      context: ./app-backend-TCC
+      args:
+        DEV: "true" # Passa o argumento para usar o modo de desenvolvimento
+    container_name: tcc-backend
+    depends_on:
+      postgres:
+        condition: service_healthy # Espera o banco de dados estar pronto
+    ports:
+      - "8080:8080"
+    environment:
+      # Conexão com o Postgres (usa o nome do serviço 'postgres')
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tccdb
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: admin123
+      # URL para o serviço Python (usa o nome do serviço 'keyword-extractor')
+      KEYWORD_EXTRACTOR_URL: http://keyword-extractor:5000
+      # URL do frontend para configuração de CORS no Spring
+      FRONTEND_URL: http://localhost:3000
+      # Variável para o Entrypoint do Dockerfile saber que está em modo DEV
+      DEV: "true"
+    volumes:
+      # Mapeia o código-fonte para o hot-reload do Gradle
+      - ./app-backend-TCC/src:/app/src
+      - ./app-backend-TCC/build.gradle:/app/build.gradle
+      - ./app-backend-TCC/settings.gradle:/app/settings.gradle
+      - ./app-backend-TCC/gradlew:/app/gradlew
+      
+  # 3. Serviço Python (Keyword Extractor)
+  keyword-extractor:
+    build:
+      context: ./keyword-extractor-tcc
+    container_name: tcc-keyword-extractor
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mapeia o código-fonte para o hot-reload do Uvicorn/Flask
+      - ./keyword-extractor-tcc/app:/app
+      
+  # 4. Frontend (Next.js)
+  frontend:
+    build:
+      context: ./app-frontend-TCC
+      # Usa o estágio 'deps' do seu Dockerfile, que só instala as dependências. Ótima prática!
+      target: deps
+    container_name: tcc-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Permite que o Next.js se atualize automaticamente
+      WATCHPACK_POLLING: "true"
+      # Passa a URL da API para o Next.js (IMPORTANTE: o prefixo NEXT_PUBLIC_ é necessário)
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    volumes:
+      # Mapeia o código-fonte para o hot-reload do Next.js
+      - ./app-frontend-TCC:/app
+      # Preserva a pasta node_modules instalada na imagem
+      - /app/node_modules
+    # Sobrescreve o CMD para rodar em modo de desenvolvimento
+    command: npm run dev
+    depends_on:
+      - backend # Garante que o frontend suba depois do backend
+
+# Define o volume nomeado para persistir os dados do Postgres
+volumes:
+  postgres_data:
