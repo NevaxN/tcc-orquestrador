@@ -49,18 +49,17 @@ services:
       - ./app-backend-TCC/src:/app/src
       - ./app-backend-TCC/build.gradle:/app/build.gradle
       - ./app-backend-TCC/settings.gradle:/app/settings.gradle
-      - ./app-backend-TCC/gradlew:/app/gradlew
       
   # 3. Serviço Python (Keyword Extractor)
   keyword-extractor:
     build:
-      context: ./keyword-extractor-tcc
+      context: ./keyword-extractor-TCC
     container_name: tcc-keyword-extractor
     ports:
       - "5000:5000"
     volumes:
       # Mapeia o código-fonte para o hot-reload do Uvicorn/Flask
-      - ./keyword-extractor-tcc/app:/app
+      - ./keyword-extractor-TCC/app:/app
       
   # 4. Frontend (Next.js)
   frontend:
