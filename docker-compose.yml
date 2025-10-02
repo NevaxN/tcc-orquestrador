@@ -49,6 +49,14 @@ services:
       - ./app-backend-TCC/src:/app/src
       - ./app-backend-TCC/build.gradle:/app/build.gradle
       - ./app-backend-TCC/settings.gradle:/app/settings.gradle
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
       
   # 3. Serviço Python (Keyword Extractor)
   keyword-extractor:
@@ -88,3 +96,4 @@ services:
 # Define o volume nomeado para persistir os dados do Postgres
 volumes:
   postgres_data:
+  redis-data:
